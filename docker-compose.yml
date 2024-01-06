@@ -1,0 +1,48 @@
+version: "3.7"
+services:
+    app:
+        build:
+            args:
+                user: api-webshop-username
+                uid: 1000
+            context: ./
+            dockerfile: Dockerfile
+        image: your-app-image
+        container_name: api-webshop-app-container
+        restart: unless-stopped
+        working_dir: /var/www/
+        volumes:
+            - ./:/var/www
+        networks:
+            - api-webshop-network
+    db:
+        image: mysql:8.0
+        container_name: api-webshop-db-container
+        restart: unless-stopped
+        environment:
+            MYSQL_ROOT_PASSWORD: laravel_password
+            MYSQL_DATABASE: laravel
+            MYSQL_USER: laravel_user
+            MYSQL_PASSWORD: laravel_password
+            SERVICE_TAGS: dev
+            SERVICE_NAME: mysql
+        ports:
+            - '3309:3306'
+        volumes:
+            - ./docker-compose/mysql:/docker-entrypoint-initdb.d
+        networks:
+            - api-webshop-network
+    nginx:
+        image: nginx:alpine
+        container_name: api-webshop-nginx-container
+        restart: unless-stopped
+        ports:
+            - 8001:80
+        volumes:
+            - ./:/var/www
+            - ./docker-compose/nginx:/etc/nginx/conf.d/
+        networks:
+            - api-webshop-network
+networks:
+    api-webshop-network:
+        driver: bridge
