@@ -40,8 +40,6 @@ class ImportMasterdata extends Command
                 'price' => 'price',
             ]);
 
-            $this->info('Masterdata import completed successfully.');
-
         } catch (Exception $e) {
             Log::error('Error during masterdata import: ' . $e->getMessage());
             $this->error('Failed to import masterdata. Check the logs for details.');
@@ -64,7 +62,8 @@ class ImportMasterdata extends Command
         $handle = fopen(storage_path($filePath), 'r');
         $header = fgetcsv($handle);
 
-        $count = 0;
+        $importedCount = 0;
+        $notImportedCount = 0;
 
         while ($data = fgetcsv($handle)) {
             $record = array_combine($header, $data);
@@ -77,20 +76,24 @@ class ImportMasterdata extends Command
                     'id' => $record[$primaryKey],
                 ], $this->mapColumns($record, $columns, $formattedDate)));
 
-                $count++;
+                $importedCount++;
 
-                if ($count % 100 === 0) {
-                    $this->info("Processed $count $entity");
+                if ($importedCount % 100 === 0) {
+                    $this->info("Processed $importedCount $entity");
                 }
             } catch (Exception $e) {
                 Log::error("Error importing $entity: " . $e->getMessage());
                 $this->error("Error importing $entity: " . $e->getMessage());
-                throw $e;
+                $notImportedCount++;
             }
         }
 
         fclose($handle);
-        $this->info("$entity imported successfully. Total: $count");
+        if ($notImportedCount > 0) {
+            $this->info("Imported: $importedCount, Not imported: $notImportedCount");
+        } else {
+            $this->info("$entity imported successfully. Total: $importedCount");
+        }
     }
 
     /**
